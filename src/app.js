@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 
 const app = express();
 app.use(express.json());
+app.use(express.static('public'))
 app.use(cors());
 
 app.post("/sign-up", async (req, res) => {
@@ -41,9 +42,21 @@ app.post("/sign-up", async (req, res) => {
 
     res.sendStatus(201);
   } catch (e) {
-    console.log(e);
     res.sendStatus(500);
   }
 });
+
+app.get("/products", async (req, res) => {
+  try {
+      const products = await connection.query(`
+        SELECT *
+        FROM products
+      `)
+      res.status(200).send(products.rows)
+
+  } catch (e) {
+    res.sendStatus(500)
+  }
+})
 
 export default app;
