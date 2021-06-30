@@ -83,8 +83,6 @@ app.post("/sign-in", async (req, res) => {
     } else {
       return res.sendStatus(401);
     }
-
-    res.sendStatus(201);
   } catch (e) {
     res.sendStatus(500);
     console.log(e);
