@@ -116,12 +116,24 @@ app.post("/shopcart", async (req, res) => {
     const customerInfo = jwt.decode(token, jwtSecret);
 
     if (customerInfo) {
+      const customer = await connection.query(
+        `
+      SELECT FROM users
+      WHERE id=$1
+      `,
+        [customerInfo.id]
+      );
+
+      if (customer.rows.length === 0) {
+        res.sendStatus(401);
+      }
+
       await connection.query(
         `
-INSERT INTO shopcart
-(user_id, product_id)
-Values ($1,$2)
-`,
+        INSERT INTO shopcart
+        (user_id, product_id)
+        Values ($1,$2)
+        `,
         [customerInfo.id, req.body.productId]
       );
       return res.sendStatus(201);
