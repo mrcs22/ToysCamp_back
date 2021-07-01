@@ -13,6 +13,9 @@ describe("POST /shopcart", () => {
     await connection.query(`
   DELETE FROM shopcart
   `);
+    await connection.query(`
+  DELETE FROM products
+  `);
   });
 
   it("returns status 400 for empty body", async () => {
@@ -83,14 +86,98 @@ describe("POST /shopcart", () => {
   });
 });
 
+describe("GET /shopcart", () => {
+  beforeEach(async () => {
+    await connection.query(`
+  DELETE FROM users
+  `);
+    await connection.query(`
+  DELETE FROM shopcart
+  `);
+    await connection.query(`
+  DELETE FROM products
+  `);
+  });
+
+  it("returns status 401 for no token", async () => {
+    const result = await supertest(app).get("/shopcart");
+    expect(result.status).toEqual(401);
+  });
+
+  it("returns status 401 for valid token but nonexistent user", async () => {
+    const userId = 1;
+
+    const jwtSecret = process.env.JWT_SECRET;
+    const tokenconfig = { expiresIn: 60 * 60 * 24 };
+
+    const token = jwt.sign({ id: userId }, jwtSecret, tokenconfig);
+
+    const result = await supertest(app)
+      .get("/shopcart")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(result.status).toEqual(401);
+  });
+
+  it("returns correct data for valid token", async () => {
+    const userResult = await connection.query(
+      `
+      INSERT INTO users (name, email, password)
+      VALUES ('Test','test@test.com','${bcrypt.hashSync("123456", 12)}')
+      RETURNING id`
+    );
+
+    const userId = userResult.rows[0].id;
+
+    const productResult = await connection.query(`
+    INSERT INTO products
+    (name, price, image, category)
+    VALUES ('testToy',99999,'https://','test')
+    RETURNING id
+    `);
+
+    const productId = productResult.rows[0].id;
+
+    await connection.query(
+      `
+      INSERT INTO shopcart
+      (user_id,product_id)
+      VALUES ($1,$2)
+      `,
+      [userId, productId]
+    );
+
+    const jwtSecret = process.env.JWT_SECRET;
+    const tokenconfig = { expiresIn: 60 * 60 * 24 };
+
+    const token = jwt.sign({ id: userId }, jwtSecret, tokenconfig);
+
+    const response = await supertest(app)
+      .get("/shopcart")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(JSON.parse(response.text)).toEqual([
+      {
+        id: productId,
+        name: "testToy",
+        price: 99999,
+        image: "https://",
+        category: "test",
+        count: 1,
+      },
+    ]);
+  });
+});
+
 afterAll(async () => {
   await connection.query(`
   DELETE FROM users
   `);
-
   await connection.query(`
   DELETE FROM shopcart
   `);
-
+  await connection.query(`
+  DELETE FROM products
+  `);
   connection.end();
 });
