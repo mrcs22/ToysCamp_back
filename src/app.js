@@ -146,4 +146,59 @@ app.post("/shopcart", async (req, res) => {
   }
 });
 
+app.get("/shopcart", async (req, res) => {
+  try {
+    const token = req.headers["authorization"]?.replace("Bearer ", "");
+
+    const jwtSecret = process.env.JWT_SECRET;
+    const customerInfo = jwt.decode(token, jwtSecret);
+
+    if (customerInfo) {
+      const customer = await connection.query(
+        `
+      SELECT FROM users
+      WHERE id=$1
+      `,
+        [customerInfo.id]
+      );
+
+      if (customer.rows.length === 0) {
+        return res.sendStatus(401);
+      }
+
+      const result = await connection.query(
+        `
+        SELECT products.* FROM shopcart
+        JOIN products
+        ON shopcart.product_id = products.id
+        WHERE shopcart.user_id = $1
+        `,
+        [customerInfo.id]
+      );
+
+      const shopcartItens = {};
+
+      result.rows.forEach((i) => {
+        if (shopcartItens[i.id]) {
+          shopcartItens[i.id].count++;
+        } else {
+          i.count = 1;
+          shopcartItens[i.id] = i;
+        }
+      });
+
+      const shopcart = Object.keys(shopcartItens).map((k) => {
+        return shopcartItens[k];
+      });
+
+      return res.send(shopcart);
+    }
+
+    res.sendStatus(401);
+  } catch (e) {
+    res.sendStatus(500);
+    console.log(e);
+  }
+});
+
 export default app;
