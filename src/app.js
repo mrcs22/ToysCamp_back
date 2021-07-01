@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import connection from "./database/connection.js";
 import { signUpSchema, signInSchema } from "./schemas/userSchemas.js";
+import { shopcartItemSchema } from "./schemas/shopcartSchemas.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
@@ -99,6 +100,37 @@ app.get("/products", async (req, res) => {
     res.status(200).send(products.rows);
   } catch (e) {
     res.sendStatus(500);
+  }
+});
+
+app.post("/shopcart", async (req, res) => {
+  try {
+    const validation = shopcartItemSchema.validate(req.body);
+    const token = req.headers["authorization"]?.replace("Bearer ", "");
+
+    if (validation.error) {
+      return res.sendStatus(400);
+    }
+
+    const jwtSecret = process.env.JWT_SECRET;
+    const customerInfo = jwt.decode(token, jwtSecret);
+
+    if (customerInfo) {
+      await connection.query(
+        `
+INSERT INTO shopcart
+(user_id, product_id)
+Values ($1,$2)
+`,
+        [customerInfo.id, req.body.productId]
+      );
+      return res.sendStatus(201);
+    }
+
+    res.sendStatus(401);
+  } catch (e) {
+    res.sendStatus(500);
+    console.log(e);
   }
 });
 
