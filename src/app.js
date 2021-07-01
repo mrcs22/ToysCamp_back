@@ -156,7 +156,7 @@ app.get("/shopcart", async (req, res) => {
     if (customerInfo) {
       const customer = await connection.query(
         `
-      SELECT FROM users
+      SELECT * FROM users
       WHERE id=$1
       `,
         [customerInfo.id]
