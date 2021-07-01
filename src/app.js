@@ -125,7 +125,7 @@ app.post("/shopcart", async (req, res) => {
       );
 
       if (customer.rows.length === 0) {
-        res.sendStatus(401);
+        return res.sendStatus(401);
       }
 
       await connection.query(
