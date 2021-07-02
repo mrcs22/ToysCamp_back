@@ -201,4 +201,65 @@ app.get("/shopcart", async (req, res) => {
   }
 });
 
+app.post("/confirm-order", async (req, res) => {
+  try {
+    const token = req.headers["authorization"]?.replace("Bearer ", "");
+    const jwtSecret = process.env.JWT_SECRET;
+    const customerInfo = jwt.decode(token, jwtSecret);
+
+    if (customerInfo) {
+      if(!req.body.cpf || !req.body.paymentMethod){
+        return res.sendStatus(400)
+      }
+      const customer = await connection.query(`
+        SELECT * FROM users
+        WHERE id = $1
+        `,
+        [customerInfo.id]
+      );
+
+      if (customer.rows.length === 0) {
+        return res.sendStatus(401);
+      }
+
+      const orderItems = await connection.query(
+        `
+        SELECT products.* FROM shopcart
+        JOIN products
+        ON shopcart.product_id = products.id
+        WHERE shopcart.user_id = $1
+        `,
+        [customerInfo.id]
+      );
+
+      orderItems.rows.forEach(item => {
+        connection.query(`
+          INSERT INTO orders
+          (user_id, product_id)
+          VALUES ($1, $2)
+        `,[customerInfo.id, item.product_id])
+      });
+      
+      await connection.query(`
+        DELETE FROM shopcart
+        WHERE user_id = $1
+      `, [customerInfo.id])
+
+      await connection.query(`
+        INSERT INTO payment_info
+        (user_id, type, cpf)
+        VALUES ($1, $2, $3)
+      `, [customerInfo.id, req.body.paymentMethod, req.body.cpf])
+
+      return res.sendStatus(200)
+    }
+
+    res.sendStatus(401);
+  } catch (e) {
+    res.sendStatus(500)
+    console.log(e)
+  }
+})
+
+
 export default app;
