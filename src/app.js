@@ -12,14 +12,6 @@ app.use(express.json());
 app.use(express.static("public"));
 app.use(cors());
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-const msg = {
-  to: 'dcapeans@gmail.com',
-  from: 'dcapeans@gmail.com', // Use the email address or domain you verified above
-  subject: 'ToysCamp - Confirmação de pedido',
-  text: 'Sua compra em ToysCamp foi confirmada com sucesso. \nObrigado pela preferência! \nVolte sempre!',
-};
-
 app.post("/sign-up", async (req, res) => {
   try {
     const validation = signUpSchema.validate(req.body);
@@ -259,6 +251,14 @@ app.post("/confirm-order", async (req, res) => {
         (user_id, type, cpf)
         VALUES ($1, $2, $3)
       `, [customerInfo.id, req.body.paymentMethod, req.body.cpf])
+
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      const msg = {
+        to: customer.rows[0].email,
+        from: 'dcapeans@gmail.com', // Use the email address or domain you verified above
+        subject: 'ToysCamp - Confirmação de pedido',
+        text: 'Sua compra em ToysCamp foi confirmada com sucesso. \nObrigado pela preferência! \nVolte sempre!',
+      };
 
       sgMail
         .send(msg)
