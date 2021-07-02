@@ -7,7 +7,7 @@ import bcrypt from "bcrypt";
 describe("POST /sign-up", () => {
   beforeEach(async () => {
     await connection.query(`
-  DELETE FROM users
+    DELETE FROM users
   `);
   });
 
@@ -88,9 +88,9 @@ describe("POST /sign-up", () => {
 });
 
 describe("POST /sign-in", () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
     await connection.query(`
-  DELETE FROM users
+    DELETE FROM users
   `);
 
     await connection.query(

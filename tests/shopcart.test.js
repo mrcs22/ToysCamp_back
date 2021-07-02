@@ -160,7 +160,7 @@ describe("GET /shopcart", () => {
       {
         id: productId,
         name: "testToy",
-        price: 99999,
+        price:"99999",
         image: "https://",
         category: "test",
         count: 1,
