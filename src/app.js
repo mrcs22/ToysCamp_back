@@ -5,11 +5,20 @@ import { signUpSchema, signInSchema } from "./schemas/userSchemas.js";
 import { shopcartItemSchema } from "./schemas/shopcartSchemas.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import sgMail from '@sendgrid/mail'
 
 const app = express();
 app.use(express.json());
 app.use(express.static("public"));
 app.use(cors());
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const msg = {
+  to: 'dcapeans@gmail.com',
+  from: 'dcapeans@gmail.com', // Use the email address or domain you verified above
+  subject: 'ToysCamp - Confirmação de pedido',
+  text: 'Sua compra em ToysCamp foi confirmada com sucesso. \nObrigado pela preferência! \nVolte sempre!',
+};
 
 app.post("/sign-up", async (req, res) => {
   try {
@@ -251,6 +260,15 @@ app.post("/confirm-order", async (req, res) => {
         VALUES ($1, $2, $3)
       `, [customerInfo.id, req.body.paymentMethod, req.body.cpf])
 
+      sgMail
+        .send(msg)
+        .then(() => {}, error => {
+          console.error(error);
+
+          if(error.response) {
+            console.error(error.response.body)
+          }
+        });
       return res.sendStatus(200)
     }
 
